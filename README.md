@@ -23,7 +23,7 @@ Every step has a free or offline fallback, so **it always finishes with an mp4, 
 
 ## Setup
 
-Needs Python 3.10+ and ffmpeg.
+Needs Python 3.9+ and ffmpeg.
 
 ```bash
 # macOS:   brew install ffmpeg

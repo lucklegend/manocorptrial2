@@ -12,6 +12,7 @@ pipeline never stops here. Every provider must return the same JSON shape:
 """
 import json
 import re
+from typing import Optional
 
 import requests
 
@@ -141,7 +142,7 @@ def validate(script: dict) -> dict:
     return {"title": script.get("title", "Untitled"), "scenes": scenes}
 
 
-def write_script(topic: str, seconds: int, only: str | None = None) -> tuple[dict, str]:
+def write_script(topic: str, seconds: int, only: Optional[str] = None) -> tuple[dict, str]:
     n_scenes = max(3, min(10, round(seconds / 9)))
     prompt = PROMPT.format(topic=topic, seconds=seconds, words=int(seconds * WORDS_PER_SECOND), scenes=n_scenes)
     for name, fn in PROVIDERS:

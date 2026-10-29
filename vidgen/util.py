@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 log = logging.getLogger("vidgen")
 
@@ -28,7 +29,7 @@ def has(binary: str) -> bool:
     return shutil.which(binary) is not None
 
 
-def env(name: str) -> str | None:
+def env(name: str) -> Optional[str]:
     v = os.environ.get(name, "").strip()
     return v or None
 

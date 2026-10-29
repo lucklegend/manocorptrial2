@@ -12,6 +12,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from .util import env, ffprobe_duration, has, log, run
 
@@ -68,7 +69,7 @@ async def _edge(text: str, voice: str, mp3: Path) -> list[Word]:
     return words
 
 
-def synthesize(text: str, out_wav: Path, engine: str | None = None) -> Speech:
+def synthesize(text: str, out_wav: Path, engine: Optional[str] = None) -> Speech:
     order = [engine] if engine else ["edge", "say", "pico", "espeak"]
     for eng in order:
         try:

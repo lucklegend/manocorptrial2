@@ -7,6 +7,7 @@ so every video has music with zero licensing risk.
 import random
 import wave
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -108,7 +109,7 @@ def compose(seconds: float, out: Path, seed: int = 0) -> Path:
     return out
 
 
-def pick_music(music_arg: str | None, seconds: float, out: Path, seed: int) -> tuple[Path, str]:
+def pick_music(music_arg: Optional[str], seconds: float, out: Path, seed: int) -> tuple[Path, str]:
     if music_arg:
         p = Path(music_arg).expanduser()
         if p.is_dir():

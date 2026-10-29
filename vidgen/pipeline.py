@@ -5,6 +5,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -48,8 +49,8 @@ def thumbnail(src_img: Path, title: str, w: int, h: int, out: Path) -> None:
 
 
 def generate(topic: str, out_dir: Path, seconds: int = 60, fmt: str = "vertical",
-             script_file: str | None = None, llm: str | None = None, tts_engine: str | None = None,
-             music_arg: str | None = None, offline: bool = False) -> Path:
+             script_file: Optional[str] = None, llm: Optional[str] = None, tts_engine: Optional[str] = None,
+             music_arg: Optional[str] = None, offline: bool = False) -> Path:
     t0 = time.time()
     w, h = FORMATS[fmt]
     run_dir = out_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-{slug(topic)}"
