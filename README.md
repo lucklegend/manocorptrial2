@@ -45,6 +45,38 @@ cp .env.example .env      # optional: paste in any keys you have
 
 No key is needed for the neural voice (edge-tts), the CC photos (Openverse and Wikimedia), or the music.
 
+### Local LLM with Ollama (free, no key, works offline)
+
+[Ollama](https://ollama.com) runs an LLM on your own machine, so you get topic-specific scripts with no API key, no usage limits and no internet. vidgen tries it automatically whenever an Ollama server is running at `localhost:11434`.
+
+1. Install Ollama from [ollama.com/download](https://ollama.com/download). On Windows and macOS it runs in the background after installing (look for the llama icon in the tray or menu bar). On Linux, or if it isn't running, start it with `ollama serve` in a separate terminal.
+2. Download the model vidgen uses by default (about 4.9 GB, needs about 8 GB of RAM):
+
+   ```bash
+   ollama pull llama3.1
+   ```
+
+   On a machine with less memory, use a smaller model and point vidgen at it in `.env`:
+
+   ```bash
+   ollama pull llama3.2                 # about 2 GB
+   # in .env: VIDGEN_OLLAMA_MODEL=llama3.2
+   ```
+
+3. Check the server is up. `curl http://localhost:11434` should print `Ollama is running`, and `ollama list` should show the model.
+4. Run vidgen as usual. To make sure Ollama writes the script even when other LLM keys are set, force it:
+
+   ```bash
+   python -m vidgen "why the ocean is salty" --llm ollama
+   ```
+
+Notes:
+
+- Hosted LLMs come first in the provider order. If `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `GEMINI_API_KEY` is set, that provider is used and Ollama only runs when it fails. Leave them empty or pass `--llm ollama` to always use the local model.
+- The first request after Ollama starts is slow (the model has to load into memory). Later runs take a few seconds per script on a GPU, longer on CPU only.
+- Use `OLLAMA_HOST` in `.env` if the server runs on another machine or port, for example `OLLAMA_HOST=http://192.168.1.20:11434`.
+- If a run logs `script: ollama failed`, the server isn't running or the model hasn't been pulled. Check with steps 1 and 3.
+
 ## Usage
 
 ```bash
@@ -52,7 +84,8 @@ python -m vidgen "how bees make honey"                    # 60s vertical
 python -m vidgen "the history of coffee" -d 90 -f landscape
 python -m vidgen "black holes" --music ~/Music/royalty-free/   # pick a track from a folder
 python -m vidgen "x" --script examples/ocean-salty.json      # skip the LLM, use your own script
-python -m vidgen "x" --offline --tts pico                    # fully offline
+python -m vidgen "black holes" --llm ollama                  # script from your local Ollama model
+python -m vidgen "black holes" --offline --llm ollama --tts pico   # fully offline (pico2wave or espeak for the voice)
 ```
 
 Each run creates its own output folder:
