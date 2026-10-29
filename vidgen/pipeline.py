@@ -50,7 +50,8 @@ def thumbnail(src_img: Path, title: str, w: int, h: int, out: Path) -> None:
 
 def generate(topic: str, out_dir: Path, seconds: int = 60, fmt: str = "vertical",
              script_file: Optional[str] = None, llm: Optional[str] = None, tts_engine: Optional[str] = None,
-             music_arg: Optional[str] = None, offline: bool = False) -> Path:
+             music_arg: Optional[str] = None, offline: bool = False,
+             intro: Optional[str] = None, outro: Optional[str] = None, card_seconds: float = 2.5) -> Path:
     t0 = time.time()
     w, h = FORMATS[fmt]
     run_dir = out_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-{slug(topic)}"
@@ -71,22 +72,31 @@ def generate(topic: str, out_dir: Path, seconds: int = 60, fmt: str = "vertical"
     speeches = [tts.synthesize(sc["narration"], work / f"voice_{i:02d}.wav", tts_engine)
                 for i, sc in enumerate(s["scenes"])]
     report["providers"]["voice"] = sorted({sp.engine for sp in speeches})
-    timeline = assemble.plan_timeline([sp.duration for sp in speeches])
+    timeline = assemble.plan_timeline([sp.duration for sp in speeches],
+                                      intro=card_seconds if intro else 0.0, outro=card_seconds if outro else 0.0)
+    slots = [tl for tl in timeline if "voice_at" in tl]
     total = timeline[-1]["start"] + timeline[-1]["length"]
 
     # 3. visuals: search sequentially (dedupe), render scene clips in parallel
     finder = MediaFinder(work, w, h, offline=offline)
-    assets = [finder.find(sc["search"], i, tl["length"]) for i, (sc, tl) in enumerate(zip(s["scenes"], timeline))]
+    assets = [finder.find(sc["search"], i, tl["length"]) for i, (sc, tl) in enumerate(zip(s["scenes"], slots))]
     report["providers"]["visuals"] = [a.source for a in assets]
     with ThreadPoolExecutor(max_workers=4) as pool:
         clips = list(pool.map(
-            lambda a: assemble.render_scene(a[1], timeline[a[0]]["length"], w, h, a[0], work / f"scene_{a[0]:02d}.mp4"),
+            lambda a: assemble.render_scene(a[1], slots[a[0]]["length"], w, h, a[0], work / f"scene_{a[0]:02d}.mp4"),
             enumerate(assets)))
+    if intro:
+        clips.insert(0, assemble.render_card(Path(intro), timeline[0]["length"], w, h, work / "intro.mp4"))
+    if outro:
+        clips.append(assemble.render_card(Path(outro), timeline[-1]["length"], w, h, work / "outro.mp4"))
+    cards = {name: Path(img).name for name, img in (("intro", intro), ("outro", outro)) if img}
+    if cards:
+        report["cards"] = cards
 
     # 4. captions
     cap_scenes = [{"start": tl["voice_at"], "headline_at": tl["start"], "duration": tl["length"] - assemble.LEAD,
                    "words": sp.words, "headline": sc.get("headline", "")}
-                  for sc, sp, tl in zip(s["scenes"], speeches, timeline)]
+                  for sc, sp, tl in zip(s["scenes"], speeches, slots)]
     captions.build(cap_scenes, w, h, work / "captions.ass", run_dir / "captions.srt")
 
     # 5. music

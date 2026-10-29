@@ -18,13 +18,23 @@ TRANSITIONS = ["fade", "slideleft", "smoothup", "circleopen", "fadeblack", "slid
 FONTS_DIR = Path(__file__).parent / "fonts"
 
 
-def plan_timeline(speech_durations: list[float]) -> list[dict]:
-    """Return per-scene start/length in the final video timeline."""
+def plan_timeline(speech_durations: list[float], intro: float = 0.0, outro: float = 0.0) -> list[dict]:
+    """Return per-slot start/length in the final video timeline.
+
+    Narrated scenes carry "voice_at". Optional intro/outro cards are slots with a
+    "card" key and no narration; a length of 0 leaves the card out.
+    """
     out, start = [], 0.0
+    if intro:
+        out.append({"start": 0.0, "length": intro + XFADE, "card": "intro"})
+        start = intro
     for i, d in enumerate(speech_durations):
-        length = LEAD + d + TAIL + (XFADE if i < len(speech_durations) - 1 else 0.6)
+        last = i == len(speech_durations) - 1 and not outro
+        length = LEAD + d + TAIL + (0.6 if last else XFADE)
         out.append({"start": start, "length": length, "voice_at": start + LEAD})
         start += length - XFADE
+    if outro:
+        out.append({"start": start, "length": outro, "card": "outro"})
     return out
 
 
@@ -63,6 +73,15 @@ def render_scene(asset, length: float, w: int, h: int, idx: int, out: Path) -> P
     return out
 
 
+def render_card(image: Path, length: float, w: int, h: int, out: Path) -> Path:
+    """A still intro/outro card shown as-is: fit inside the frame (no crop, no grade), black bars if needed."""
+    vf = (f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color=black,"
+          f"setsar=1,fps={FPS},format=yuv420p")
+    run(["ffmpeg", "-y", "-v", "error", "-loop", "1", "-i", image, "-t", f"{length:.3f}", "-vf", vf,
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-r", str(FPS), out])
+    return out
+
+
 def assemble(clips: list[Path], timeline: list[dict], voices: list[Path], music: Path,
              ass: Path, out: Path, workdir: Path, music_volume: float = 0.22) -> Path:
     total = timeline[-1]["start"] + timeline[-1]["length"]
@@ -86,16 +105,18 @@ def assemble(clips: list[Path], timeline: list[dict], voices: list[Path], music:
     f.append(f"{last}subtitles={_filter_path(ass_rel)}:fontsdir={_filter_path(FONTS_DIR)},"
              f"fade=t=in:st=0:d=0.4,fade=t=out:st={total - 0.6:.3f}:d=0.6[vout]")
 
-    # narration: delay each scene's voice to its slot, then mix
-    for i, tl in enumerate(timeline):
+    # narration: delay each scene's voice to its slot (cards have none), then mix
+    voiced = [tl for tl in timeline if "voice_at" in tl]
+    nv = len(voices)
+    for i, tl in enumerate(voiced):
         ms = int(tl["voice_at"] * 1000)
         f.append(f"[{n + i}:a]aformat=sample_rates=44100:channel_layouts=stereo,adelay={ms}|{ms}[v{i}]")
-    f.append("".join(f"[v{i}]" for i in range(n)) +
-             f"amix=inputs={n}:normalize=0:duration=longest,apad,atrim=0:{total:.3f},"
+    f.append("".join(f"[v{i}]" for i in range(nv)) +
+             f"amix=inputs={nv}:normalize=0:duration=longest,apad,atrim=0:{total:.3f},"
              "loudnorm=I=-15:TP=-1.5:LRA=7[voice]")
     f.append("[voice]asplit=2[voice1][voice2]")
     # music: trim, lower, fade, duck under the voice
-    mi = 2 * n
+    mi = n + nv
     f.append(f"[{mi}:a]aformat=sample_rates=44100:channel_layouts=stereo,atrim=0:{total:.3f},"
              f"volume={music_volume},afade=t=in:d=1,afade=t=out:st={max(0, total - 2):.3f}:d=2[mus]")
     f.append("[mus][voice1]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[ducked]")

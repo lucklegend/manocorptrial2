@@ -86,7 +86,10 @@ python -m vidgen "black holes" --music ~/Music/royalty-free/   # pick a track fr
 python -m vidgen "x" --script examples/ocean-salty.json      # skip the LLM, use your own script
 python -m vidgen "black holes" --llm ollama                  # script from your local Ollama model
 python -m vidgen "black holes" --offline --llm ollama --tts pico   # fully offline (pico2wave or espeak for the voice)
+python -m vidgen "black holes" --intro brand/logo.png --outro brand/subscribe.png --card-seconds 3   # your own opening and closing cards
 ```
+
+`--intro` and `--outro` add a still image before the first scene and after the last one, joined with the same crossfades as the scenes. The image is shown as-is: it is fitted inside the frame without cropping or colour grading, with black bars if its shape doesn't match the format. Use an image that is already sized for the format (for example 1080x1920 for vertical) to avoid the bars. The cards add to the video's length; the music plays under them, and they have no narration or captions.
 
 Each run creates its own output folder:
 

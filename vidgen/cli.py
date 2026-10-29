@@ -31,8 +31,16 @@ def main() -> None:
     p.add_argument("--tts", choices=["edge", "say", "pico", "espeak"], help="force one TTS engine")
     p.add_argument("--music", help="music file, or a folder of tracks to pick from (default: composes one)")
     p.add_argument("--offline", action="store_true", help="skip all stock media lookups, use generated art")
+    p.add_argument("--intro", help="image shown at the start of the video, before the first scene")
+    p.add_argument("--outro", help="image shown at the end of the video, after the last scene")
+    p.add_argument("--card-seconds", type=float, default=2.5, help="how long the intro/outro image is on screen (default 2.5)")
     p.add_argument("-v", "--verbose", action="store_true")
     a = p.parse_args()
+    for flag, path in (("--intro", a.intro), ("--outro", a.outro)):
+        if path and not Path(path).is_file():
+            p.error(f"{flag}: no such file: {path}")
+    if a.card_seconds <= 0:
+        p.error("--card-seconds must be greater than 0")
 
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)-7s %(message)s", datefmt="%H:%M:%S")
@@ -40,7 +48,8 @@ def main() -> None:
         logging.getLogger(noisy).setLevel(logging.WARNING)
     if not (has("ffmpeg") and has("ffprobe")):
         sys.exit("ffmpeg/ffprobe not found on PATH. Install ffmpeg first (see README).")
-    out = generate(a.topic, Path(a.out), a.duration, a.format, a.script, a.llm, a.tts, a.music, a.offline)
+    out = generate(a.topic, Path(a.out), a.duration, a.format, a.script, a.llm, a.tts, a.music, a.offline,
+                   intro=a.intro, outro=a.outro, card_seconds=a.card_seconds)
     print(out)
 
 
