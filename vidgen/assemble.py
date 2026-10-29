@@ -5,9 +5,10 @@ Narration for each scene is placed at that scene's start (+ a short lead) so
 audio, captions and visuals stay in sync. Music is looped/trimmed and
 side-chain ducked under the voice.
 """
+import re
 from pathlib import Path
 
-from .util import ffprobe_duration, log, run
+from .util import ffprobe_duration, filter_script_args, log, run
 
 FPS = 30
 XFADE = 0.4
@@ -25,6 +26,12 @@ def plan_timeline(speech_durations: list[float]) -> list[dict]:
         out.append({"start": start, "length": length, "voice_at": start + LEAD})
         start += length - XFADE
     return out
+
+
+def _filter_path(p: Path) -> str:
+    """A path as a filter option value: escaped for the option parser (\\ ' :), then quoted for the graph parser."""
+    opt = re.sub(r"([\\':])", r"\\\1", p.as_posix())
+    return "'" + opt.replace("'", r"'\''") + "'"
 
 
 def _cover(w: int, h: int) -> str:
@@ -75,8 +82,8 @@ def assemble(clips: list[Path], timeline: list[dict], voices: list[Path], music:
         tr = TRANSITIONS[(i - 1) % len(TRANSITIONS)]
         f.append(f"{last}[{i}:v]xfade=transition={tr}:duration={XFADE}:offset={off:.3f}[vx{i}]")
         last = f"[vx{i}]"
-    ass_rel = ass.relative_to(workdir).as_posix()
-    f.append(f"{last}subtitles={ass_rel}:fontsdir='{FONTS_DIR.as_posix()}',"
+    ass_rel = ass.relative_to(workdir)
+    f.append(f"{last}subtitles={_filter_path(ass_rel)}:fontsdir={_filter_path(FONTS_DIR)},"
              f"fade=t=in:st=0:d=0.4,fade=t=out:st={total - 0.6:.3f}:d=0.6[vout]")
 
     # narration: delay each scene's voice to its slot, then mix
@@ -97,7 +104,7 @@ def assemble(clips: list[Path], timeline: list[dict], voices: list[Path], music:
     graph = workdir / "filtergraph.txt"
     graph.write_text(";\n".join(f))
     log.info("assemble: rendering %.1fs final video", total)
-    run(["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex_script", graph.name,
+    run(["ffmpeg", "-y", "-v", "error", *inputs, *filter_script_args(graph.name),
          "-map", "[vout]", "-map", "[aout]", "-t", f"{total:.3f}",
          "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-r", str(FPS),
          "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out.resolve()], cwd=workdir)

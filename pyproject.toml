@@ -3,7 +3,14 @@ name = "vidgen"
 version = "0.1.0"
 description = "Prototype automated video generator: give it a topic, get back an mp4."
 requires-python = ">=3.9"
-dependencies = ["requests>=2.31", "pillow>=10.0", "numpy>=1.26", "edge-tts>=7.0"]
+dependencies = [
+    "requests>=2.31",
+    "pillow>=10.0",
+    "numpy>=1.26",
+    "edge-tts>=7.0",
+    "aiohttp<3.12; python_full_version < '3.9.2'",
+    "aiohttp<3.9; python_version < '3.10'",
+]
 
 [project.scripts]
 vidgen = "vidgen.cli:main"

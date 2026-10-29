@@ -80,10 +80,10 @@ def _gemini(prompt: str) -> str:
     key = env("GEMINI_API_KEY")
     if not key:
         raise LookupError("no GEMINI_API_KEY")
-    model = env("VIDGEN_GEMINI_MODEL") or "gemini-2.0-flash"
+    model = env("VIDGEN_GEMINI_MODEL") or "gemini-3.5-flash"
     r = requests.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-        params={"key": key},
+        headers={"x-goog-api-key": key},  # not in the URL, so error messages don't leak it
         json={"contents": [{"parts": [{"text": prompt}]}],
               "generationConfig": {"responseMimeType": "application/json"}},
         timeout=90,
