@@ -1,0 +1,15 @@
+[project]
+name = "vidgen"
+version = "0.1.0"
+description = "Prototype automated video generator: give it a topic, get back an mp4."
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31", "pillow>=10.0", "numpy>=1.26", "edge-tts>=7.0"]
+
+[project.scripts]
+vidgen = "vidgen.cli:main"
+
+[tool.setuptools]
+packages = ["vidgen"]
+
+[tool.setuptools.package-data]
+vidgen = ["fonts/*"]

@@ -1,0 +1,23 @@
+{
+  "topic": "why the ocean is salty",
+  "format": "1080x1920",
+  "providers": {
+    "script": "file: ocean-salty.json",
+    "voice": [
+      "pico"
+    ],
+    "visuals": [
+      "generated",
+      "generated",
+      "generated",
+      "generated",
+      "generated",
+      "generated",
+      "generated"
+    ],
+    "music": "composed by vidgen (numpy synth)"
+  },
+  "duration_s": 51.4,
+  "render_time_s": 81.9,
+  "output": "why-is-the-ocean-salty.mp4"
+}

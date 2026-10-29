@@ -1,0 +1,8 @@
+Scene 1: Procedurally generated background (vidgen)
+Scene 2: Procedurally generated background (vidgen)
+Scene 3: Procedurally generated background (vidgen)
+Scene 4: Procedurally generated background (vidgen)
+Scene 5: Procedurally generated background (vidgen)
+Scene 6: Procedurally generated background (vidgen)
+Scene 7: Procedurally generated background (vidgen)
+Music: composed by vidgen (numpy synth)
